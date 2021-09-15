@@ -3,8 +3,8 @@ pandas
 numpy
 tzwhere
 pysolar
-darksky
+darkskylib
 pytz 
-json
-urllib
-yaml
+#json
+urllib3
+pyyaml

@@ -79,7 +79,7 @@ class GenerationPotential:
         clearsky_irradiance = get_clearsky_irradiance(
                                 start_time=start_time, end_time=end_time, timezone=timezone, 
                                 granularity=granularity, latitude=self.lat_, longitude=self.lon_, 
-                                clearsky_source=self.clearsky_source)
+                                clearsky_estimation_method=self.clearsky_source)
         
         # get sun position
         sun_position = get_sun_position(

@@ -11,6 +11,10 @@ import numpy as np
 
 from helpers import okta_to_percent, granularity_to_freq
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 def get_temperature_cloudcover(start_time=None, end_time=None, 
                 granularity=None,latitude=None, longitude=None, source='weather_underground', timezone='US/Eastern', darksky_api_key=None):
 
@@ -19,7 +23,7 @@ def get_temperature_cloudcover(start_time=None, end_time=None,
         # create a pandas datetimeindex 
         df = pd.date_range(start_time - datetime.timedelta(days=1), end_time , freq='D')
 
-        print(df)
+        logger.info(df)
 
         # convert it into a simple dataframe and rename the column
         df = df.to_frame(index=False)

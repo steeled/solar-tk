@@ -7,6 +7,8 @@ import numpy as np
 import math
 from sklearn import metrics
 
+import logging
+
 from irradiance import get_clearsky_irradiance
 from weather import get_temperature_cloudcover
 from sunpos import get_sun_position
@@ -15,9 +17,14 @@ from sunpos import get_sun_position
 #debug code 
 import matplotlib.pyplot as plt 
 
+#
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class ParameterModeling:
+    
     
     # a constructor to initialize the values of latitude, logitude, and the file name
     def __init__(self, latitude=None, longitude=None, data_file=None):  
@@ -26,8 +33,8 @@ class ParameterModeling:
         self.clearsky_estimation_method = 'lau_model'
         self.sun_position_source = 'psa'
         self.temperature_source = 'darksky'
-        self.google_api_key = ' '
-        self.darksky_api_key = ' '
+        self.google_api_key = None
+        self.darksky_api_key = None
 
         if (latitude == None):
             raise ValueError('please specify the latitude value.')
@@ -144,7 +151,7 @@ class ParameterModeling:
                 +np.sin(math.radians(90)-pd.to_numeric(self.data['sun_zenith']))
                 *np.cos(best_tilt))
 
-            print(self.data)
+            logger.info(self.data)
 
             if run == 0:
                 add_k = 2
@@ -160,7 +167,8 @@ class ParameterModeling:
             best_tilt = self.find_tilt(best_k + add_k, best_ori, self.lat_, run)
             # best_tilt = np.deg2rad(50)
 
-            print(best_k, np.rad2deg(best_ori), np.rad2deg(best_tilt))
+            logger.info(f"{best_k}, {np.rad2deg(best_ori)}, {np.rad2deg(best_tilt)}")
+            
             # debug code
             # self.data['max'] = self.data['clearsky'] * best_k * (
             # 1 + 0.005*(25 - self.data['temperature'])) *(
@@ -268,11 +276,11 @@ class ParameterModeling:
             *np.cos(tilt_))
         
         # debug code
-        plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_list[index_min_rmse]))
-        plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
-        plt.legend()
-        plt.title('Graph with K')
-        plt.show()  
+        #plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_list[index_min_rmse]))
+        #plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
+        #plt.legend()
+        #plt.title('Graph with K')
+        #plt.show()  
         ##########################################################################
 
         return k_list[index_min_rmse]
