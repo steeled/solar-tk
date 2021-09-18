@@ -24,9 +24,9 @@ class GenerationPotential:
         if (k == None or k <= 0):
             raise ValueError('please specify the k value, where k > 0.')
         else:
-            self.k = k * 0.20 # convert back to k at 20% efficiency
+            self.k = k * 0.18 # convert back to k at 20% efficiency
 
-        if (tilt == None or tilt < 0):
+        if (tilt == None or tilt < 0):  #
             raise ValueError('please specify the tilt value, where tilt => 0.')
         else:
             self.tilt_ = math.radians(tilt) 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         sys.stdin.close()
     else: 
         user_args = sys.argv
-        start_time, end_time, resolution, lat, lon, k_, tilt_, ore_, c_, tBase_ = user_args[1], user_args[2], user_args[3], user_args[4], user_args[5], user_args[6], user_args[7], user_args[8], user_args[9], user_args[10]
+        start_time, end_time, resolution, lat, lon, k_, tilt_, ore_, c_, tBase_ = user_args[1], user_args[2], int(user_args[3]), float(user_args[4]), float(user_args[5]), float(user_args[6]), float(user_args[7]), float(user_args[8]), float(user_args[9]), int(user_args[10])
 
     # create an object of GenerationPotential class
     gen = GenerationPotential(k=k_, tilt=tilt_, orientation=ore_, temperature_coefficient=c_, latitude=lat, longitude=lon, baseline_temperature=tBase_)

@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 #
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -62,6 +62,7 @@ class ParameterModeling:
             tz = tzwhere.tzwhere()
             timezone_str = tz.tzNameAt(self.lat_, self.lon_)
             self.timezone = pytz.timezone(timezone_str)
+            # self.timezone = pytz.timezone('UTC')
 
         except:
             print('The file could not be opened.')
@@ -79,7 +80,8 @@ class ParameterModeling:
         sun_position = get_sun_position(
                             start_time=self.start_time.replace(tzinfo=self.timezone).astimezone(pytz.timezone('UTC')), 
                             end_time=self.end_time.replace(tzinfo=self.timezone).astimezone(pytz.timezone('UTC')), 
-                            granularity=self.granularity, latitude=self.lat_, longitude=self.lon_)
+                            granularity=self.granularity, latitude=self.lat_, longitude=self.lon_,
+                            sun_position_method='psa')
 
         self.data['sun_azimuth'] = sun_position['sun_azimuth']
         self.data['sun_zenith'] = sun_position['sun_zenith']
@@ -131,8 +133,8 @@ class ParameterModeling:
         # print(self.data)
 
         best_k = 100
-        best_tilt = math.radians(self.lat_)
-        best_ori = math.radians(180)
+        best_tilt = math.radians(abs(self.lat_))
+        best_ori = math.radians(0)
             
         for run in range(10):
 
@@ -142,6 +144,7 @@ class ParameterModeling:
         
             # search for best k
             best_k = self.find_K(best_tilt, best_ori, run)
+            logger.info(f'Best K: {best_k}')
 
             self.data['max'] = self.data['clearsky'] * best_k * (
             1 + 0.005*(16 - self.data['temperature'])) *(
@@ -164,7 +167,7 @@ class ParameterModeling:
             # self.find_ori(best_k + add_k, best_tilt, run)
             
             # # search for best tilt
-            best_tilt = self.find_tilt(best_k + add_k, best_ori, self.lat_, run)
+            best_tilt = self.find_tilt(best_k + add_k, best_ori, abs(self.lat_), run)
             # best_tilt = np.deg2rad(50)
 
             logger.info(f"{best_k}, {np.rad2deg(best_ori)}, {np.rad2deg(best_tilt)}")
@@ -191,7 +194,7 @@ class ParameterModeling:
 
         # initialize some variables
         k_ = 0
-        k_tolerance = 2
+        k_tolerance = 5
         
         rmse_list = []
         k_list = []
@@ -213,18 +216,24 @@ class ParameterModeling:
 
             # count how many times upperlimit has been violated for each day
             count = self.data.groupby(['date']).apply(self.upperlimit_violation_count)
+            # logger.info(f"Count:{count}")
 
             # print(count)
             # break
 
             ##########################################################################
             # debug code
-            # if ((k_ % 3 == 0) and (6<= k_ <= 12) and (iter_ == 1)):
-            #     plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_))
-            #     plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
-            #     plt.legend()
-            #     plt.title('Graph with K')
-            #     plt.show()  
+            from datetime import datetime
+
+            now = datetime.now()
+            current_time = now.strftime("%H-%M-%S")
+            logger.debug("Current Time =", current_time)
+            if ((k_ % 3 == 0) and (1<= k_ <= 12) and (iter_ == 1)):
+                plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_))
+                plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
+                plt.legend()
+                plt.title('Graph with K')
+                plt.savefig(f'debug/{current_time}.png') 
             ##########################################################################
 
             # # check if count > tolerance
@@ -248,8 +257,8 @@ class ParameterModeling:
                 rmse_list.append(self.root_mean_squared_error(self.data['max'], self.data['solar']))
                 # print(k_, self.root_mean_squared_error(self.data['max'], self.data['solar']))
 
-            # if k_ > 10:
-            #     break
+            if k_ > 10:
+                break
 
         ##### debug code
         # k_flag = True
@@ -276,11 +285,11 @@ class ParameterModeling:
             *np.cos(tilt_))
         
         # debug code
-        #plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_list[index_min_rmse]))
-        #plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
-        #plt.legend()
-        #plt.title('Graph with K')
-        #plt.show()  
+        # plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_list[index_min_rmse]))
+        # plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
+        # plt.legend()
+        # plt.title('Graph with K')
+        # plt.show()  
         ##########################################################################
 
         return k_list[index_min_rmse]
