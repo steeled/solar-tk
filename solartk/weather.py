@@ -12,8 +12,12 @@ import numpy as np
 from helpers import okta_to_percent, granularity_to_freq
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+import requests_cache
+
+session = requests_cache.CachedSession('demo_cache')
 
 def get_temperature_cloudcover(start_time=None, end_time=None, 
                 granularity=None,latitude=None, longitude=None, source='weather_underground', timezone='US/Eastern', darksky_api_key=None):
@@ -21,9 +25,9 @@ def get_temperature_cloudcover(start_time=None, end_time=None,
     if (source == 'weather_underground' or darksky_api_key == None):
 
         # create a pandas datetimeindex 
-        df = pd.date_range(start_time - datetime.timedelta(days=1), end_time , freq='D')
+        df = pd.date_range(start_time - datetime.timedelta(days=1), end_time + datetime.timedelta(days=1) , freq='D')
 
-        logger.info(df)
+        # logger.info(f"Date Range: {df}")
 
         # convert it into a simple dataframe and rename the column
         df = df.to_frame(index=False)
@@ -32,13 +36,16 @@ def get_temperature_cloudcover(start_time=None, end_time=None,
         # convert it into required format for weather underground
         df['time'] = df['time'].dt.strftime('%Y%m%d')
 
+        # logger.info(df)
+
         temp_cloud_df = pd.DataFrame()
 
         for _ , row in df.iterrows():
             # print(row['time'])
             try:
                 url = "https://api.weather.com/v1/geocode/{}/{}/observations/historical.json?apiKey=6532d6454b8aa370768e63d6ba5a832e&startDate={}&endDate={}&units=e".format(latitude, longitude, row['time'], row['time'])
-                data = urllib.request.urlopen(url).read()
+                # data = urllib.request.urlopen(url).read()
+                data = session.get(url).text
                 output = json.loads(data)
                 output= pd.DataFrame(output['observations'])
                 output = output[['valid_time_gmt', 'temp', 'clds', 'wx_phrase']]
@@ -48,15 +55,21 @@ def get_temperature_cloudcover(start_time=None, end_time=None,
                 # print(e)
                 pass
             # time.sleep(0.01)
+
         
         # convert to datetime and set the correct timezone
         temp_cloud_df['time_s'] = temp_cloud_df['time']
+        # temp_cloud_df['time'] = pd.to_datetime(temp_cloud_df['time'],unit='s').dt.tz_localize('utc').dt.tz_convert(timezone)
         temp_cloud_df['time'] = pd.to_datetime(temp_cloud_df['time'],unit='s').dt.tz_localize('utc').dt.tz_convert(timezone)
         # temp_cloud_df['time'] = temp_cloud_df['time'].dt.round("H")
 
+        logger.info(f"Weather Obs: {temp_cloud_df}")
+
         # resample the data to desired granularity
         temp_cloud_df = temp_cloud_df.set_index(temp_cloud_df['time'])
-        temp_cloud_df = temp_cloud_df.resample(granularity_to_freq(granularity)).ffill()
+        temp_cloud_df = temp_cloud_df.resample(granularity_to_freq(granularity)).ffill().fillna(method='ffill')
+        temp_cloud_df = temp_cloud_df.fillna(method='bfill')
+        # logger.info(f"Weather Obs (Interpolated): {temp_cloud_df}")
         temp_cloud_df = temp_cloud_df[['temperature', 'clds']]
         temp_cloud_df = temp_cloud_df.reset_index()
 
@@ -83,6 +96,8 @@ def get_temperature_cloudcover(start_time=None, end_time=None,
 
         # temp_cloud_df['time'] = temp_cloud_df['time'].dt.tz_localize('utc').dt.tz_convert(timezone)
         temp_cloud_df['time'] = temp_cloud_df['time'].dt.tz_localize(None)
+        # temp_cloud_df['time'] = temp_cloud_df['time'].dt.tz_convert(timezone)
+        
 
         # print(temp_cloud_df)
 
@@ -116,4 +131,5 @@ def get_temperature_cloudcover(start_time=None, end_time=None,
     else: 
         print('Sorry, {} source has not been implemented yet.'.format(source))
 
+    # logger.info(f"Cloud Cover: {temp_cloud_df}")
     return temp_cloud_df

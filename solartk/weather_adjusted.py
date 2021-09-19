@@ -13,6 +13,10 @@ from irradiance import get_clearsky_irradiance
 from weather import get_temperature_cloudcover
 from sunpos import get_sun_position
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # weather adjusted generation potential class that provides a function to compute
 # weather adjusted generation
 class WeatherAdjustedGeneration: 
@@ -47,13 +51,23 @@ class WeatherAdjustedGeneration:
         start_time = max_generation.iloc[0][0]
         end_time = max_generation.iloc[-1][0]
 
+        logger.info(f"Start: {start_time}, End: {end_time}")
+
         # get the resolution of the data as number of seconds between two consecutive timestamps
         granularity = (max_generation.iloc[1][0] - max_generation.iloc[0][0]).seconds
+
+        tz = tzwhere.tzwhere()
+        timezone_str = tz.tzNameAt(self.lat_, self.lon_)
+        # timezone = pytz.timezone(timezone_str)
+        timezone = pytz.timezone("Australia/Sydney")
+        logger.info(f"TZ:{timezone}")
 
         # get weather data
         temp_cloudcover = get_temperature_cloudcover(start_time=start_time, 
                             end_time=end_time, granularity=granularity, latitude=self.lat_, 
-                            longitude=self.lon_, source=self.weather_source)
+                            longitude=self.lon_, source=self.weather_source, timezone=timezone)
+        
+        # logger.info(temp_cloudcover)
 
         # print(temp_cloudcover)
 
@@ -80,18 +94,23 @@ if __name__ == "__main__":
     # get latitude and longitude
     lat, lon = data.iloc[1][0], data.iloc[1][1]
 
+    logger.info(f"Lat: {lat}, Lon: {lon}")
+
     # remove the first two rows
     data = data[2:].reset_index(drop=True)
+
+    # logger.info(data)
 
     # set first row as column which contain #time, max_generation
     data.columns = data.iloc[0]
     data = data.reindex(data.index.drop(0)).reset_index(drop=True)
     data.columns.name = None
     data = data.replace(to_replace='None', value=np.nan).dropna()
-
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
     # convert time column to datetime
     data['time'] = pd.to_datetime(data['#time'])
     data = data[['time', 'max_generation']]
+    # logger.info(f"Max Profile: {data}")
 
     ##################### for future release #######################
     # # read user input from command line
@@ -100,7 +119,9 @@ if __name__ == "__main__":
     ################################################################
 
     # create an object of GenerationPotential class    
-    weather = WeatherAdjustedGeneration(latitude=lat, longitude=lon)
+    weather = WeatherAdjustedGeneration(latitude=float(lat), longitude=float(lon))
+
+    # logger.info(f"Weather: {weather}")
 
     # compute weather adjusted generation
     weather.adjusted_weather_generation(max_generation=data)

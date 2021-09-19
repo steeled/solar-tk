@@ -60,8 +60,9 @@ class ParameterModeling:
 
             #calculate the timezone of the given latitude and longitude
             tz = tzwhere.tzwhere()
-            timezone_str = tz.tzNameAt(self.lat_, self.lon_)
-            self.timezone = pytz.timezone(timezone_str)
+            # timezone_str = tz.tzNameAt(self.lat_, self.lon_)
+            # self.timezone = pytz.timezone(timezone_str)
+            self.timezone = pytz.timezone("Australia/Sydney")
             # self.timezone = pytz.timezone('UTC')
 
         except:
@@ -101,6 +102,7 @@ class ParameterModeling:
 
         # get ambient temperature 
         filtered = self.data.join(t_ambient.set_index('time'), on='time')
+        # logger.info(f"Filtered Temp: {filtered['temperature']}")
         self.data['temperature'] = filtered['temperature']
 
     def preprocess_data(self):
@@ -144,7 +146,7 @@ class ParameterModeling:
         
             # search for best k
             best_k = self.find_K(best_tilt, best_ori, run)
-            logger.info(f'Best K: {best_k}')
+            # logger.info(f'Best K: {best_k}')
 
             self.data['max'] = self.data['clearsky'] * best_k * (
             1 + 0.005*(16 - self.data['temperature'])) *(
@@ -154,7 +156,7 @@ class ParameterModeling:
                 +np.sin(math.radians(90)-pd.to_numeric(self.data['sun_zenith']))
                 *np.cos(best_tilt))
 
-            logger.info(self.data)
+            # logger.info(self.data)
 
             if run == 0:
                 add_k = 2
@@ -223,17 +225,17 @@ class ParameterModeling:
 
             ##########################################################################
             # debug code
-            from datetime import datetime
+            # from datetime import datetime
 
-            now = datetime.now()
-            current_time = now.strftime("%H-%M-%S")
-            logger.debug("Current Time =", current_time)
-            if ((k_ % 3 == 0) and (1<= k_ <= 12) and (iter_ == 1)):
-                plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_))
-                plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
-                plt.legend()
-                plt.title('Graph with K')
-                plt.savefig(f'debug/{current_time}.png') 
+            # now = datetime.now()
+            # current_time = now.strftime("%H-%M-%S")
+            # logger.debug("Current Time =", current_time)
+            # if ((k_ % 3 == 0) and (1<= k_ <= 12) and (iter_ == 1)):
+            #     plt.plot([i for i in range(len(self.data))], self.data['max'], label='Max Solar ({})'.format(k_))
+            #     plt.plot([i for i in range(len(self.data))], self.data['solar'], label='Solar')
+            #     plt.legend()
+            #     plt.title('Graph with K')
+            #     plt.savefig(f'debug/{current_time}.png') 
             ##########################################################################
 
             # # check if count > tolerance
@@ -349,7 +351,7 @@ class ParameterModeling:
             minimum_rmse = min(rmse_list)
             index_min_rmse = rmse_list.index(minimum_rmse)
         else:
-            return math.radians(180)
+            return math.radians(0)
 
         ##########################################################################
         # print(k_list[index_min_rmse])

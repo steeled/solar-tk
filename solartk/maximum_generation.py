@@ -73,7 +73,8 @@ class GenerationPotential:
         #calculate the timezone of the given latitude and longitude
         tz = tzwhere.tzwhere()
         timezone_str = tz.tzNameAt(self.lat_, self.lon_)
-        timezone = pytz.timezone(timezone_str)
+        # timezone = pytz.timezone(timezone_str)
+        timezone = pytz.timezone("Australia/Sydney")
 
         # get clearsky using the defined clearsky method
         clearsky_irradiance = get_clearsky_irradiance(
